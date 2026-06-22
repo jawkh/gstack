@@ -52,6 +52,7 @@ import { generateAskUserFormat } from './preamble/generate-ask-user-format';
 import { generateWritingStyle } from './preamble/generate-writing-style';
 import { generateCompletenessSection } from './preamble/generate-completeness-section';
 import { generateConfusionProtocol } from './preamble/generate-confusion-protocol';
+import { generateSubagentRetry } from './preamble/generate-subagent-retry';
 import { generateContinuousCheckpoint } from './preamble/generate-continuous-checkpoint';
 import { generateContextHealth } from './preamble/generate-context-health';
 
@@ -109,10 +110,11 @@ export function generatePreamble(ctx: TemplateContext): string {
     ...(tier >= 2 ? [
       generateContextRecovery(ctx),
       generateWritingStyle(ctx),
-      generateCompletenessSection(),
-      generateConfusionProtocol(),
+      generateCompletenessSection(ctx),
+      generateConfusionProtocol(ctx),
+      generateSubagentRetry(ctx),
       generateContinuousCheckpoint(),
-      generateContextHealth(),
+      generateContextHealth(ctx),
       generateQuestionTuning(ctx),
     ] : []),
     ...(tier >= 3 ? [generateRepoModeSection(), generateSearchBeforeBuildingSection(ctx)] : []),

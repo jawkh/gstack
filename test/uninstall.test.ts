@@ -161,5 +161,42 @@ describe('gstack-uninstall', () => {
       // Non-gstack should survive
       expect(fs.existsSync(path.join(mockHome, '.claude', 'skills', 'other-tool'))).toBe(true);
     });
+
+    test('--force removes Copilot gstack skills and preserves unrelated Copilot skills', () => {
+      const generatedRoot = path.join(tmpDir, 'generated', '.copilot', 'skills');
+      const copilotSkills = path.join(mockHome, '.copilot', 'skills');
+      fs.mkdirSync(path.join(generatedRoot, 'gstack'), { recursive: true });
+      fs.mkdirSync(path.join(generatedRoot, 'gstack-ship'), { recursive: true });
+      fs.writeFileSync(path.join(generatedRoot, 'gstack', 'SKILL.md'), 'generated root');
+      fs.writeFileSync(path.join(generatedRoot, 'gstack-ship', 'SKILL.md'), 'generated ship');
+
+      fs.mkdirSync(path.join(copilotSkills, 'gstack'), { recursive: true });
+      fs.symlinkSync(
+        path.join(generatedRoot, 'gstack', 'SKILL.md'),
+        path.join(copilotSkills, 'gstack', 'SKILL.md')
+      );
+      fs.symlinkSync(path.join(generatedRoot, 'gstack-ship'), path.join(copilotSkills, 'gstack-ship'));
+
+      fs.mkdirSync(path.join(copilotSkills, 'gstack-experiments'), { recursive: true });
+      fs.writeFileSync(path.join(copilotSkills, 'gstack-experiments', 'SKILL.md'), 'personal skill');
+      fs.mkdirSync(path.join(copilotSkills, 'other-tool'), { recursive: true });
+
+      const result = spawnSync('bash', [UNINSTALL, '--force'], {
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          HOME: mockHome,
+          GSTACK_DIR: path.join(mockHome, '.claude', 'skills', 'gstack'),
+          GSTACK_STATE_DIR: path.join(mockHome, '.gstack'),
+        },
+        cwd: mockGitRoot,
+      });
+
+      expect(result.status).toBe(0);
+      expect(fs.existsSync(path.join(copilotSkills, 'gstack'))).toBe(false);
+      expect(fs.existsSync(path.join(copilotSkills, 'gstack-ship'))).toBe(false);
+      expect(fs.existsSync(path.join(copilotSkills, 'gstack-experiments'))).toBe(true);
+      expect(fs.existsSync(path.join(copilotSkills, 'other-tool'))).toBe(true);
+    });
   });
 });
