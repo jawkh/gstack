@@ -20,7 +20,7 @@ const copilot: HostConfig = {
 
   generation: {
     generateMetadata: false,
-    skipSkills: ['codex'],
+    skipSkills: ['codex', 'claude'],
   },
 
   pathRewrites: [

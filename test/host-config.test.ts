@@ -504,12 +504,14 @@ describe('host config correctness', () => {
     expect(codex.boundaryInstruction).toContain('Do NOT read');
   });
 
-  test('copilot intercepts codex voices to multi-model (not via suppression)', () => {
+  test('copilot intercepts codex voices to multi-model + skips the /codex and /claude wrappers', () => {
+    // Both external-CLI second-opinion wrappers are skipped on GHCP: /codex (no codex binary)
+    // and /claude (no claude Code CLI; GHCP is already Claude-backed). The native multi-model
+    // panel replaces both. The codex/outside-voice RESOLVER placeholders are NOT suppressed —
+    // a registry intercept (scripts/resolvers/index.ts) swaps them for multi-model voices in
+    // place (see test/ghcp-multimodel-voices.test.ts). suppressedResolvers stays minimal.
     expect(copilot.generation.skipSkills).toContain('codex');
-    expect(copilot.generation.skipSkills).not.toContain('claude');
-    // The codex / outside-voice placeholders are NOT suppressed; a registry intercept in
-    // scripts/resolvers/index.ts swaps them for native multi-model voices on copilot, in place
-    // (see test/ghcp-multimodel-voices.test.ts). suppressedResolvers stays minimal.
+    expect(copilot.generation.skipSkills).toContain('claude');
     expect(copilot.suppressedResolvers || []).not.toContain('CODEX_SECOND_OPINION');
     expect(copilot.suppressedResolvers || []).not.toContain('ADVERSARIAL_STEP');
     expect(copilot.suppressedResolvers || []).not.toContain('REVIEW_ARMY');

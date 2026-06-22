@@ -2003,6 +2003,7 @@ describe('Copilot generation (--host copilot)', () => {
     for (const entry of fs.readdirSync(ROOT, { withFileTypes: true })) {
       if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'node_modules') continue;
       if (entry.name === 'codex') continue;
+      if (entry.name === 'claude') continue;  // /claude wrapper skipped on copilot (Claude-backed; no claude CLI)
       if (!fs.existsSync(path.join(ROOT, entry.name, 'SKILL.md.tmpl'))) continue;
       const copilotName = entry.name.startsWith('gstack-') ? entry.name : `gstack-${entry.name}`;
       if (isSymlinkLoop(copilotName)) continue;
@@ -2051,12 +2052,12 @@ describe('Copilot generation (--host copilot)', () => {
     expect(content).not.toContain('.copilot/skills/gstack-review/checklist.md');
   });
 
-  test('Copilot keeps non-Copilot outside-voice integrations', () => {
-    const shipContent = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-ship', 'SKILL.md'), 'utf-8');
-    expect(shipContent).toContain('codex');
-
-    const claudeContent = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-claude', 'SKILL.md'), 'utf-8');
-    expect(claudeContent).toContain('claude -p');
+  test('Copilot skips the /codex and /claude wrapper skills (replaced by multi-model voices)', () => {
+    expect(fs.existsSync(path.join(COPILOT_DIR, 'gstack-codex', 'SKILL.md'))).toBe(false);
+    expect(fs.existsSync(path.join(COPILOT_DIR, 'gstack-claude', 'SKILL.md'))).toBe(false);
+    // review's adversarial step renders the native multi-model panel in place, not codex
+    const reviewContent = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-review', 'SKILL.md'), 'utf-8');
+    expect(reviewContent).toContain('gpt-5.5');
   });
 
   test('--host copilot --dry-run freshness', () => {
@@ -2282,6 +2283,11 @@ describe('Parameterized host smoke tests', () => {
       });
 
       test('generates Claude outside-voice skill for external hosts', () => {
+        // copilot skips /claude (it is Claude-backed; no external claude CLI) — see hosts/copilot.ts
+        if (hostConfig.name === 'copilot') {
+          expect(fs.existsSync(path.join(hostDir, 'gstack-claude', 'SKILL.md'))).toBe(false);
+          return;
+        }
         const skillMd = path.join(hostDir, 'gstack-claude', 'SKILL.md');
         expect(fs.existsSync(skillMd)).toBe(true);
         const content = fs.readFileSync(skillMd, 'utf-8');
