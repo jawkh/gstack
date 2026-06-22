@@ -2057,7 +2057,7 @@ describe('Copilot generation (--host copilot)', () => {
     expect(fs.existsSync(path.join(COPILOT_DIR, 'gstack-claude', 'SKILL.md'))).toBe(false);
     // review's adversarial step renders the native multi-model panel in place, not codex
     const reviewContent = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-review', 'SKILL.md'), 'utf-8');
-    expect(reviewContent).toContain('gpt-5.5');
+    expect(reviewContent).toContain('gpt-5.3-codex');
   });
 
   test('--host copilot --dry-run freshness', () => {

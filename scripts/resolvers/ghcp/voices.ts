@@ -2,10 +2,12 @@
  * GHCP multi-model review voices — fork-owned single source of truth.
  *
  * Upstream gstack gets a "second voice" by shelling out to the OpenAI Codex CLI
- * (`codex exec`). On the GitHub Copilot CLI harness there is no codex binary, and
- * the codex->copilot shim was retired. Instead, GHCP gives every review/adversarial
- * voice for free via the `task` tool's `model` parameter: dispatch sub-agents on
- * diverse frontier models and let their independence do the work.
+ * (`codex exec`). On the GitHub Copilot CLI harness the standalone `codex` CLI is a
+ * copilot-backed shim (not an independent process), but Codex itself IS available as
+ * the `gpt-5.3-codex` task-tool model. So every review/adversarial voice — Codex
+ * included — is dispatched via the `task` tool's `model` parameter: diverse frontier
+ * models, real independence. Nothing about "Codex" is erased; only the execution path
+ * moves from a shell-out to a `task` call.
  *
  * This module is the ONLY place the model roster lives. The resolver
  * (ghcp/multimodel-voices.ts) and the contract test both import it, so changing a
@@ -36,20 +38,21 @@ export const IMPLEMENTER_MODEL = 'claude-opus-4.8';
 
 /**
  * Independent reviewer voices, dispatched in parallel for a diverse panel.
- * Two non-Claude frontier families so the panel disagrees in useful ways.
+ * Two non-Claude frontier families so the panel disagrees in useful ways: the Codex
+ * voice (OpenAI, coding-specialized) and Gemini (Google). Both run via the `task` tool.
  */
 export const REVIEW_VOICES: ReviewVoice[] = [
   {
-    model: 'gpt-5.5',
+    model: 'gpt-5.3-codex',
     effort: 'xhigh',
-    family: 'gpt',
-    role: '#1 SWE-bench Verified + Terminal-Bench; frontier non-Claude voice',
+    family: 'codex',
+    role: 'The Codex voice — OpenAI coding-specialized model, dispatched via the task tool',
   },
   {
     model: 'gemini-3.1-pro-preview',
     effort: 'high',
     family: 'gemini',
-    role: 'Frontier long-context reasoner; a third model family for true diversity',
+    role: 'Frontier long-context reasoner; a different model family for true diversity',
   },
 ];
 

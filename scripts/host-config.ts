@@ -71,6 +71,8 @@ export interface HostConfig {
   pathRewrites: Array<{ from: string; to: string }>;
   /** Tool name string replacements on content. */
   toolRewrites?: Record<string, string>;
+  /** Host-specific prose replacements on content. */
+  textRewrites?: Record<string, string>;
   /** Resolver functions that return empty string for this host. */
   suppressedResolvers?: string[];
 

@@ -20,17 +20,17 @@ describe('GHCP multi-model review voices (registry intercept)', () => {
 
   test('voice roster SoT: diverse non-Claude frontier families, efforts within model ceilings', () => {
     const families = REVIEW_VOICES.map((v: any) => v.family);
-    expect(families).toContain('gpt');
+    expect(families).toContain('codex');
     expect(families).toContain('gemini');
     expect(REVIEW_VOICES.map((v: any) => v.model)).not.toContain(IMPLEMENTER_MODEL);
-    expect(REVIEW_VOICES.find((v: any) => v.model === 'gpt-5.5').effort).toBe('xhigh');
+    expect(REVIEW_VOICES.find((v: any) => v.model === 'gpt-5.3-codex').effort).toBe('xhigh');
     expect(REVIEW_VOICES.find((v: any) => v.model === 'gemini-3.1-pro-preview').effort).toBe('high');
   });
 
   test('ghcpVoiceFor renders multi-model dispatch for every placeholder on copilot, never codex', () => {
     for (const key of GHCP_VOICE_PLACEHOLDERS) {
       const out = ghcpVoiceFor(key, ctxFor('copilot', 'review'));
-      expect(out).toContain('gpt-5.5');
+      expect(out).toContain('gpt-5.3-codex');
       expect(out).toContain('gemini-3.1-pro-preview');
       expect(out).not.toContain('codex exec');
       expect(out.length).toBeGreaterThan(50);
@@ -58,12 +58,12 @@ describe('GHCP multi-model review voices (registry intercept)', () => {
     // office-hours uses {{CODEX_SECOND_OPINION}} — on copilot it must render the panel in place
     // (no blank Phase 3.5 gap), with zero codex.
     const cop = render('CODEX_SECOND_OPINION', ctxFor('copilot', 'office-hours'));
-    expect(cop).toContain('gpt-5.5');
+    expect(cop).toContain('gpt-5.3-codex');
     expect(cop).not.toContain('codex exec');
     // claude path must be byte-for-byte the upstream codex flow (no regression, no multi-model leak)
     const cla = render('ADVERSARIAL_STEP', ctxFor('claude', 'review'));
     expect(cla).toContain('codex exec');
-    expect(cla).not.toContain('gpt-5.5');
+    expect(cla).not.toContain('gpt-5.3-codex');
   });
 });
 
@@ -75,7 +75,7 @@ describe('GHCP copilot adapter (codex-CLI bash → multi-model panel)', () => {
     const input = 'before\n```bash\nTMP=$(mktemp)\ncodex exec "review this" -s read-only\n```\nafter';
     const out = transform(input, copilot);
     expect(out).not.toContain('codex exec');
-    expect(out).toContain('gpt-5.5');
+    expect(out).toContain('gpt-5.3-codex');
     expect(out).toContain('native multi-model panel');
     expect(out).toContain('before');
     expect(out).toContain('after');
@@ -85,11 +85,19 @@ describe('GHCP copilot adapter (codex-CLI bash → multi-model panel)', () => {
     const input = '```bash\ncommand -v codex >/dev/null 2>&1 && echo ok\n```';
     const out = transform(input, copilot);
     expect(out).not.toContain('command -v codex');
-    expect(out).toContain('gpt-5.5');
+    expect(out).toContain('gpt-5.3-codex');
   });
 
   test('leaves non-codex bash blocks untouched (byte-identical)', () => {
     const input = '```bash\necho "hello"\nls -la\n```';
+    expect(transform(input, copilot)).toBe(input);
+  });
+
+  test('keeps upstream Codex PROSE verbatim — structural-only, no prose rewrites (mergeability)', () => {
+    // The adapter must touch ONLY codex-CLI bash blocks. Upstream "Codex" wording stays put
+    // because Codex is a real voice here (gpt-5.3-codex); this guards against re-introducing
+    // brittle prose rewrites that would silently break on upstream rewording.
+    const input = '- CEO Voices: Codex [summary], Claude subagent [summary]\nPresent under the CODEX SAYS header.';
     expect(transform(input, copilot)).toBe(input);
   });
 

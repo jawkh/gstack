@@ -76,9 +76,9 @@ export function ghcpVoiceFor(key: string, ctx: TemplateContext): string {
 
   return `${role.heading(ctx)}
 
-${role.intro} This harness has no Codex CLI — independent voices come from the \`task\` tool's
-\`model\` param (model diversity is the point; never run every voice on one model). The implementer
-is \`${IMPLEMENTER_MODEL}\`; reviewer voices MUST differ from it.
+${role.intro} Independent voices come from the \`task\` tool's \`model\` param — the Codex
+voice runs as the \`gpt-5.3-codex\` model (model diversity is the point; never run every voice on
+one model). The implementer is \`${IMPLEMENTER_MODEL}\`; reviewer voices MUST differ from it.
 
 | Reviewer model | Effort | Why this voice |
 |---|---|---|

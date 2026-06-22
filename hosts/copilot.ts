@@ -47,11 +47,16 @@ const copilot: HostConfig = {
     AskUserQuestion: 'ask_user',
     WebSearch: 'web_search',
   },
+  textRewrites: {
+    'Generated with [Claude Code](https://claude.com/claude-code)': 'Generated with [GitHub Copilot CLI](https://github.com/features/copilot)',
+    'Claude Code': 'GitHub Copilot CLI',
+  },
 
   suppressedResolvers: ['GBRAIN_CONTEXT_LOAD', 'GBRAIN_SAVE_RESULTS'],
 
-  // Rewrites the Codex-CLI bash blocks that autoplan/spec hardcode (not placeholder-based, so
-  // the resolver intercept can't reach them) into native multi-model voices. Copilot-only.
+  // Structural-only: rewrites the Codex-CLI bash blocks autoplan/spec hardcode (not placeholder-
+  // based, so the resolver intercept can't reach them) into the native multi-model panel. Keeps
+  // upstream Codex prose verbatim for mergeability. Copilot-only.
   adapter: 'scripts/host-adapters/copilot-adapter.ts',
 
   runtimeRoot: {
