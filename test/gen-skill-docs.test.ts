@@ -2536,7 +2536,7 @@ describe('setup script validation', () => {
     expect(linkBody).toContain('.copilot/skills');
     expect(linkBody).toContain('gstack*');
     expect(linkBody).toContain('[ "$skill_name" = "gstack" ] && continue');
-    expect(linkBody).toContain('ln -snf "$skill_dir" "$target"');
+    expect(linkBody).toContain('_link_or_copy "$skill_dir" "$target"');
 
     const rootBody = extractSetupFunction('create_copilot_runtime_root');
     expect(rootBody).toContain('.copilot/skills');

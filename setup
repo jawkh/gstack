@@ -1014,45 +1014,45 @@ create_copilot_runtime_root() {
   mkdir -p "$copilot_gstack" "$copilot_gstack/browse" "$copilot_gstack/design" "$copilot_gstack/make-pdf" "$copilot_gstack/gstack-upgrade" "$copilot_gstack/review" "$copilot_gstack/qa" "$copilot_gstack/plan-devex-review"
 
   if [ -f "$copilot_dir/gstack/SKILL.md" ]; then
-    ln -snf "$copilot_dir/gstack/SKILL.md" "$copilot_gstack/SKILL.md"
+    _link_or_copy "$copilot_dir/gstack/SKILL.md" "$copilot_gstack/SKILL.md"
   fi
   if [ -d "$gstack_dir/bin" ]; then
-    ln -snf "$gstack_dir/bin" "$copilot_gstack/bin"
+    _link_or_copy "$gstack_dir/bin" "$copilot_gstack/bin"
   fi
   if [ -d "$gstack_dir/browse/dist" ]; then
-    ln -snf "$gstack_dir/browse/dist" "$copilot_gstack/browse/dist"
+    _link_or_copy "$gstack_dir/browse/dist" "$copilot_gstack/browse/dist"
   fi
   if [ -d "$gstack_dir/browse/bin" ]; then
-    ln -snf "$gstack_dir/browse/bin" "$copilot_gstack/browse/bin"
+    _link_or_copy "$gstack_dir/browse/bin" "$copilot_gstack/browse/bin"
   fi
   if [ -d "$gstack_dir/design/dist" ]; then
-    ln -snf "$gstack_dir/design/dist" "$copilot_gstack/design/dist"
+    _link_or_copy "$gstack_dir/design/dist" "$copilot_gstack/design/dist"
   fi
   if [ -d "$gstack_dir/make-pdf/dist" ]; then
-    ln -snf "$gstack_dir/make-pdf/dist" "$copilot_gstack/make-pdf/dist"
+    _link_or_copy "$gstack_dir/make-pdf/dist" "$copilot_gstack/make-pdf/dist"
   fi
   if [ -f "$copilot_dir/gstack-upgrade/SKILL.md" ]; then
-    ln -snf "$copilot_dir/gstack-upgrade/SKILL.md" "$copilot_gstack/gstack-upgrade/SKILL.md"
+    _link_or_copy "$copilot_dir/gstack-upgrade/SKILL.md" "$copilot_gstack/gstack-upgrade/SKILL.md"
   fi
   for f in checklist.md design-checklist.md greptile-triage.md TODOS-format.md; do
     if [ -f "$gstack_dir/review/$f" ]; then
-      ln -snf "$gstack_dir/review/$f" "$copilot_gstack/review/$f"
+      _link_or_copy "$gstack_dir/review/$f" "$copilot_gstack/review/$f"
     fi
   done
   if [ -d "$gstack_dir/review/specialists" ]; then
-    ln -snf "$gstack_dir/review/specialists" "$copilot_gstack/review/specialists"
+    _link_or_copy "$gstack_dir/review/specialists" "$copilot_gstack/review/specialists"
   fi
   if [ -d "$gstack_dir/qa/templates" ]; then
-    ln -snf "$gstack_dir/qa/templates" "$copilot_gstack/qa/templates"
+    _link_or_copy "$gstack_dir/qa/templates" "$copilot_gstack/qa/templates"
   fi
   if [ -d "$gstack_dir/qa/references" ]; then
-    ln -snf "$gstack_dir/qa/references" "$copilot_gstack/qa/references"
+    _link_or_copy "$gstack_dir/qa/references" "$copilot_gstack/qa/references"
   fi
   if [ -f "$gstack_dir/plan-devex-review/dx-hall-of-fame.md" ]; then
-    ln -snf "$gstack_dir/plan-devex-review/dx-hall-of-fame.md" "$copilot_gstack/plan-devex-review/dx-hall-of-fame.md"
+    _link_or_copy "$gstack_dir/plan-devex-review/dx-hall-of-fame.md" "$copilot_gstack/plan-devex-review/dx-hall-of-fame.md"
   fi
   if [ -f "$gstack_dir/ETHOS.md" ]; then
-    ln -snf "$gstack_dir/ETHOS.md" "$copilot_gstack/ETHOS.md"
+    _link_or_copy "$gstack_dir/ETHOS.md" "$copilot_gstack/ETHOS.md"
   fi
 }
 
@@ -1078,14 +1078,14 @@ link_copilot_skill_dirs() {
       [ "$skill_name" = "gstack" ] && continue
       target="$skills_dir/$skill_name"
       if [ -L "$target" ] || [ ! -e "$target" ]; then
-        ln -snf "$skill_dir" "$target"
+        _link_or_copy "$skill_dir" "$target"
         linked+=("$skill_name")
       elif [ -d "$target" ] && [ -L "$target/SKILL.md" ]; then
         target_real="$(realpath "$target/SKILL.md" 2>/dev/null || true)"
         case "$target_real" in
           "$copilot_dir"/gstack*/SKILL.md)
             rm -rf "$target"
-            ln -snf "$skill_dir" "$target"
+            _link_or_copy "$skill_dir" "$target"
             linked+=("$skill_name")
             ;;
           *)
