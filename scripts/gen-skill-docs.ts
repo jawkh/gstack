@@ -655,6 +655,13 @@ function applyHostRewrites(content: string, hostConfig: HostConfig): string {
       result = result.replaceAll(from, to);
     }
   }
+  // Optional host adapter: a post-processing transform for host-specific semantics that
+  // string-replace can't cover. Runs only for hosts that declare `adapter`, after all
+  // generic rewrites — so hosts without one are byte-for-byte unaffected.
+  if (hostConfig.adapter) {
+    const adapterMod = require(path.resolve(ROOT, hostConfig.adapter));
+    result = adapterMod.transform(result, hostConfig);
+  }
   return result;
 }
 

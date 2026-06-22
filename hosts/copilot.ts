@@ -50,6 +50,10 @@ const copilot: HostConfig = {
 
   suppressedResolvers: ['GBRAIN_CONTEXT_LOAD', 'GBRAIN_SAVE_RESULTS'],
 
+  // Rewrites the Codex-CLI bash blocks that autoplan/spec hardcode (not placeholder-based, so
+  // the resolver intercept can't reach them) into native multi-model voices. Copilot-only.
+  adapter: 'scripts/host-adapters/copilot-adapter.ts',
+
   runtimeRoot: {
     globalSymlinks: [
       'bin',

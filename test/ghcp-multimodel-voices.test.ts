@@ -66,3 +66,37 @@ describe('GHCP multi-model review voices (registry intercept)', () => {
     expect(cla).not.toContain('gpt-5.5');
   });
 });
+
+describe('GHCP copilot adapter (codex-CLI bash → multi-model panel)', () => {
+  const { transform } = require('../scripts/host-adapters/copilot-adapter');
+  const copilot = require('../hosts/copilot').default;
+
+  test('replaces a fenced bash block that drives codex with the native panel', () => {
+    const input = 'before\n```bash\nTMP=$(mktemp)\ncodex exec "review this" -s read-only\n```\nafter';
+    const out = transform(input, copilot);
+    expect(out).not.toContain('codex exec');
+    expect(out).toContain('gpt-5.5');
+    expect(out).toContain('native multi-model panel');
+    expect(out).toContain('before');
+    expect(out).toContain('after');
+  });
+
+  test('also catches the command -v codex probe block', () => {
+    const input = '```bash\ncommand -v codex >/dev/null 2>&1 && echo ok\n```';
+    const out = transform(input, copilot);
+    expect(out).not.toContain('command -v codex');
+    expect(out).toContain('gpt-5.5');
+  });
+
+  test('leaves non-codex bash blocks untouched (byte-identical)', () => {
+    const input = '```bash\necho "hello"\nls -la\n```';
+    expect(transform(input, copilot)).toBe(input);
+  });
+
+  test('preserves indentation of the replaced block', () => {
+    const input = '  ```bash\n  _gstack_codex_timeout_wrapper 600 codex exec "x"\n  ```';
+    const out = transform(input, copilot);
+    expect(out).not.toContain('codex exec');
+    expect(out.split('\n').every(l => l === '' || l.startsWith('  '))).toBe(true);
+  });
+});
