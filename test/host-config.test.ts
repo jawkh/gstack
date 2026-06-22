@@ -504,11 +504,14 @@ describe('host config correctness', () => {
     expect(codex.boundaryInstruction).toContain('Do NOT read');
   });
 
-  test('copilot keeps Claude outside-voice skill and Codex resolver content', () => {
+  test('copilot intercepts codex voices to multi-model (not via suppression)', () => {
     expect(copilot.generation.skipSkills).toContain('codex');
     expect(copilot.generation.skipSkills).not.toContain('claude');
+    // The codex / outside-voice placeholders are NOT suppressed; a registry intercept in
+    // scripts/resolvers/index.ts swaps them for native multi-model voices on copilot, in place
+    // (see test/ghcp-multimodel-voices.test.ts). suppressedResolvers stays minimal.
     expect(copilot.suppressedResolvers || []).not.toContain('CODEX_SECOND_OPINION');
-    expect(copilot.suppressedResolvers || []).not.toContain('CODEX_PLAN_REVIEW');
+    expect(copilot.suppressedResolvers || []).not.toContain('ADVERSARIAL_STEP');
     expect(copilot.suppressedResolvers || []).not.toContain('REVIEW_ARMY');
   });
 

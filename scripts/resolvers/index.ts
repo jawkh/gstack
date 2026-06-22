@@ -15,6 +15,8 @@
  */
 
 import type { TemplateContext, ResolverFn, ResolverValue } from './types';
+import { unwrapResolver } from './types';
+import { ghcpVoiceFor, GHCP_VOICE_PLACEHOLDERS } from './ghcp/multimodel-voices';
 
 // Domain modules
 import { generatePreamble } from './preamble';
@@ -103,3 +105,19 @@ export const RESOLVERS: Record<string, ResolverValue> = {
   SECTION,
   SECTION_INDEX,
 };
+
+// ── FORK (GHCP): native multi-model voices replace Codex for the copilot host ───────────────
+// In-place registry intercept (decorator). For the copilot host, the codex / outside-voice
+// placeholders render ghcpVoiceFor(key, ctx) — the multi-model `task` panel — exactly where the
+// skill's step runs, instead of `codex exec`. Every upstream resolver body stays untouched, so
+// upstream syncs don't conflict here, and other hosts are byte-for-byte unaffected. The only
+// other fork edits for codex neutralization are 2 embedded design guards + 1 plan-mode mention.
+// See scripts/resolvers/ghcp/.
+for (const key of GHCP_VOICE_PLACEHOLDERS) {
+  const upstream = RESOLVERS[key];
+  if (!upstream) continue;
+  const { resolve: upstreamFn, appliesTo } = unwrapResolver(upstream);
+  const wrapped: ResolverFn = (ctx, args) =>
+    ctx.host === 'copilot' ? ghcpVoiceFor(key, ctx) : upstreamFn(ctx, args);
+  RESOLVERS[key] = appliesTo ? { resolve: wrapped, appliesTo } : wrapped;
+}

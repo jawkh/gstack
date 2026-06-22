@@ -19,10 +19,10 @@ import type { TemplateContext } from '../types';
  * gates. See ceo-plan 2026-04-24 "remove vestigial plan-mode handshake" for
  * the full rationale.
  */
-export function generatePlanModeInfo(_ctx: TemplateContext): string {
+export function generatePlanModeInfo(ctx: TemplateContext): string {
   return `## Plan Mode Safe Operations
 
-In plan mode, allowed because they inform the plan: \`$B\`, \`$D\`, \`codex exec\`/\`codex review\`, writes to \`~/.gstack/\`, writes to the plan file, and \`open\` for generated artifacts.
+In plan mode, allowed because they inform the plan: \`$B\`, \`$D\`, ${ctx.host === 'copilot' ? '' : '`codex exec`/`codex review`, '}writes to \`~/.gstack/\`, writes to the plan file, and \`open\` for generated artifacts.
 
 ## Skill Invocation During Plan Mode
 

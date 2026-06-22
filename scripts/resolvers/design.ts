@@ -5,7 +5,7 @@ export function generateDesignReviewLite(ctx: TemplateContext): string {
   const litmusList = OPENAI_LITMUS_CHECKS.map((item, i) => `${i + 1}. ${item}`).join(' ');
   const rejectionList = OPENAI_HARD_REJECTIONS.map((item, i) => `${i + 1}. ${item}`).join(' ');
   // Codex block only for Claude host
-  const codexBlock = ctx.host === 'codex' ? '' : `
+  const codexBlock = (ctx.host === 'codex' || ctx.host === 'copilot') ? '' : `
 
 7. **Codex design voice** (optional, automatic if available):
 
@@ -448,7 +448,7 @@ Tie everything to user goals and product objectives. Always suggest specific imp
 11. **Show screenshots to the user.** After every \`$B screenshot\`, \`$B snapshot -a -o\`, or \`$B responsive\` command, use the Read tool on the output file(s) so the user can see them inline. For \`responsive\` (3 files), Read all three. This is critical — without it, screenshots are invisible to the user.`;
 }
 
-export function generateDesignSketch(_ctx: TemplateContext): string {
+export function generateDesignSketch(ctx: TemplateContext): string {
   return `## Visual Sketch (UI ideas only)
 
 If the chosen approach involves user-facing UI (screens, pages, forms, dashboards,
@@ -505,7 +505,7 @@ If they approve or say "good enough," proceed.
 
 Reference the wireframe screenshot in the design doc's "Recommended Approach" section.
 The screenshot file at \`/tmp/gstack-sketch.png\` can be referenced by downstream skills
-(\`/plan-design-review\`, \`/design-review\`) to see what was originally envisioned.
+(\`/plan-design-review\`, \`/design-review\`) to see what was originally envisioned.` + (ctx.host === 'copilot' ? '' : `
 
 **Step 6: Outside design voices** (optional)
 
@@ -535,7 +535,7 @@ Use a 5-minute timeout (\`timeout: 300000\`). After completion: \`cat "$TMPERR_S
 "For this product approach, what design direction would you recommend? What aesthetic, typography, and interaction patterns fit? What would make this approach feel inevitable to the user? Be specific — font names, hex colors, spacing values."
 
 Present Codex output under \`CODEX SAYS (design sketch):\` and subagent output under \`CLAUDE SUBAGENT (design direction):\`.
-Error handling: all non-blocking. On failure, skip and continue.`;
+Error handling: all non-blocking. On failure, skip and continue.`);
 }
 
 export function generateDesignOutsideVoices(ctx: TemplateContext): string {
