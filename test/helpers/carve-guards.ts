@@ -161,7 +161,7 @@ export const CARVE_GUARDS: Record<string, CarveGuard> = {
       gateAfterStop: 'EXIT PLAN MODE GATE',
     },
     behavioral: 'plan',
-    maxSkeletonBytes: 62_000,
+    maxSkeletonBytes: 64_000,  // rebased for upstream v1.58.4.0 (skeleton grew to 63_322; was 62_000)
     minUnionBytes: 70_000,
     mustContain: ['Architecture', 'Code Quality', 'Test', 'Performance'],
     // Cross-cutting preamble growth (v1.57.2.0 AUQ-failure prose fallback + the
@@ -185,7 +185,7 @@ export const CARVE_GUARDS: Record<string, CarveGuard> = {
     behavioral: 'plan',
     // +Conductor AUQ-default-prose rule + one-way/continuation safety in the
     // always-loaded AskUserQuestion Format section.
-    maxSkeletonBytes: 84_000,
+    maxSkeletonBytes: 85_000,  // rebased for upstream v1.58.4.0 (skeleton grew to 84_517; was 84_000)
     minUnionBytes: 70_000,
     mustContain: ['design', 'visual'],
   },
