@@ -1924,6 +1924,96 @@ describe('Codex generation (--host codex)', () => {
   });
 });
 
+// ─── Copilot generation tests ────────────────────────────────
+
+describe('Copilot generation (--host copilot)', () => {
+  const COPILOT_DIR = path.join(ROOT, '.copilot', 'skills');
+  const generationResult = Bun.spawnSync(['bun', 'run', 'scripts/gen-skill-docs.ts', '--host', 'copilot'], {
+    cwd: ROOT, stdout: 'pipe', stderr: 'pipe',
+  });
+
+  const COPILOT_SKILLS = (() => {
+    const skills: Array<{ dir: string; copilotName: string }> = [];
+    const isSymlinkLoop = (name: string): boolean => {
+      const copilotSkillDir = path.join(ROOT, '.copilot', 'skills', name);
+      try { return fs.realpathSync(copilotSkillDir) === fs.realpathSync(ROOT); }
+      catch { return false; }
+    };
+    if (fs.existsSync(path.join(ROOT, 'SKILL.md.tmpl'))) {
+      if (!isSymlinkLoop('gstack')) skills.push({ dir: '.', copilotName: 'gstack' });
+    }
+    for (const entry of fs.readdirSync(ROOT, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      if (entry.name === 'codex') continue;
+      if (!fs.existsSync(path.join(ROOT, entry.name, 'SKILL.md.tmpl'))) continue;
+      const copilotName = entry.name.startsWith('gstack-') ? entry.name : `gstack-${entry.name}`;
+      if (isSymlinkLoop(copilotName)) continue;
+      skills.push({ dir: entry.name, copilotName });
+    }
+    return skills;
+  })();
+
+  test('--host copilot generates successfully', () => {
+    expect(generationResult.exitCode).toBe(0);
+  });
+
+  test('--host copilot generates correct output paths', () => {
+    for (const skill of COPILOT_SKILLS) {
+      const skillMd = path.join(COPILOT_DIR, skill.copilotName, 'SKILL.md');
+      expect(fs.existsSync(skillMd)).toBe(true);
+    }
+  });
+
+  test('Copilot frontmatter has ONLY name + description', () => {
+    for (const skill of COPILOT_SKILLS) {
+      const content = fs.readFileSync(path.join(COPILOT_DIR, skill.copilotName, 'SKILL.md'), 'utf-8');
+      const fmEnd = content.indexOf('\n---', 4);
+      expect(fmEnd).toBeGreaterThan(0);
+      const frontmatter = content.slice(4, fmEnd);
+      expect(frontmatter).toContain('name:');
+      expect(frontmatter).toContain('description:');
+      expect(frontmatter).not.toContain('allowed-tools:');
+      expect(frontmatter).not.toContain('version:');
+      expect(frontmatter).not.toContain('hooks:');
+      expect(frontmatter).not.toContain('voice-triggers:');
+    }
+  });
+
+  test('no Claude install paths leak into Copilot output', () => {
+    for (const skill of COPILOT_SKILLS) {
+      const content = fs.readFileSync(path.join(COPILOT_DIR, skill.copilotName, 'SKILL.md'), 'utf-8');
+      expect(content).not.toContain('.claude/skills');
+      expect(content).not.toContain('~/.claude/skills');
+    }
+  });
+
+  test('sidecar paths point to .copilot/skills/gstack/review/', () => {
+    const content = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-review', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('.copilot/skills/gstack/review/checklist.md');
+    expect(content).not.toContain('.copilot/skills/gstack-review/checklist.md');
+  });
+
+  test('Copilot keeps non-Copilot outside-voice integrations', () => {
+    const shipContent = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-ship', 'SKILL.md'), 'utf-8');
+    expect(shipContent).toContain('codex');
+
+    const claudeContent = fs.readFileSync(path.join(COPILOT_DIR, 'gstack-claude', 'SKILL.md'), 'utf-8');
+    expect(claudeContent).toContain('claude -p');
+  });
+
+  test('--host copilot --dry-run freshness', () => {
+    const result = Bun.spawnSync(['bun', 'run', 'scripts/gen-skill-docs.ts', '--host', 'copilot', '--dry-run'], {
+      cwd: ROOT, stdout: 'pipe', stderr: 'pipe',
+    });
+    expect(result.exitCode).toBe(0);
+    const output = result.stdout.toString();
+    for (const skill of COPILOT_SKILLS) {
+      expect(output).toContain(`FRESH: .copilot/skills/${skill.copilotName}/SKILL.md`);
+    }
+    expect(output).not.toContain('STALE');
+  });
+});
+
 // ─── Factory generation tests ────────────────────────────────
 
 describe('Factory generation (--host factory)', () => {
@@ -2172,6 +2262,14 @@ describe('--host all', () => {
 describe('setup script validation', () => {
   const setupContent = fs.readFileSync(path.join(ROOT, 'setup'), 'utf-8');
 
+  function extractSetupFunction(name: string): string {
+    const fnStart = setupContent.indexOf(`${name}() {`);
+    expect(fnStart).toBeGreaterThan(-1);
+    const fnEnd = setupContent.indexOf('\n}', fnStart);
+    expect(fnEnd).toBeGreaterThan(fnStart);
+    return setupContent.slice(fnStart, fnEnd + 2);
+  }
+
   test('setup has separate link functions for Claude and Codex', () => {
     expect(setupContent).toContain('link_claude_skill_dirs');
     expect(setupContent).toContain('link_codex_skill_dirs');
@@ -2270,16 +2368,17 @@ describe('setup script validation', () => {
     expect(fnBody).toContain('rm -f "$target"');
   });
 
-  test('setup supports --host auto|claude|codex|kiro|opencode', () => {
+  test('setup supports --host auto|claude|codex|kiro|opencode|copilot', () => {
     expect(setupContent).toContain('--host');
-    expect(setupContent).toContain('claude|codex|kiro|factory|opencode|auto');
+    expect(setupContent).toContain('claude|codex|kiro|factory|opencode|copilot|auto');
   });
 
-  test('auto mode detects claude, codex, kiro, and opencode binaries', () => {
+  test('auto mode detects claude, codex, kiro, opencode, and copilot binaries', () => {
     expect(setupContent).toContain('command -v claude');
     expect(setupContent).toContain('command -v codex');
     expect(setupContent).toContain('command -v kiro-cli');
     expect(setupContent).toContain('command -v opencode');
+    expect(setupContent).toContain('command -v copilot');
   });
 
   // T1: Sidecar skip guard — prevents .agents/skills/gstack from being linked as a skill
@@ -2312,6 +2411,13 @@ describe('setup script validation', () => {
     expect(setupContent).toContain('OPENCODE_GSTACK="$OPENCODE_SKILLS/gstack"');
   });
 
+  test('setup supports --host copilot with global personal skill path vars', () => {
+    expect(setupContent).toContain('INSTALL_COPILOT=');
+    expect(setupContent).toContain('COPILOT_SKILLS="$HOME/.copilot/skills"');
+    expect(setupContent).toContain('COPILOT_GSTACK="$COPILOT_SKILLS/gstack"');
+    expect(setupContent).toContain('bun run gen:skill-docs --host copilot');
+  });
+
   test('setup installs OpenCode skills into a nested gstack runtime root', () => {
     expect(setupContent).toContain('create_opencode_runtime_root');
     expect(setupContent).toContain('.opencode/skills');
@@ -2319,6 +2425,68 @@ describe('setup script validation', () => {
     expect(setupContent).toContain('qa/templates');
     expect(setupContent).toContain('qa/references');
     expect(setupContent).toContain('dx-hall-of-fame.md');
+  });
+
+  test('setup installs Copilot skills from generated .copilot output', () => {
+    const linkBody = extractSetupFunction('link_copilot_skill_dirs');
+    expect(linkBody).toContain('.copilot/skills');
+    expect(linkBody).toContain('gstack*');
+    expect(linkBody).toContain('[ "$skill_name" = "gstack" ] && continue');
+    expect(linkBody).toContain('ln -snf "$skill_dir" "$target"');
+
+    const rootBody = extractSetupFunction('create_copilot_runtime_root');
+    expect(rootBody).toContain('.copilot/skills');
+    expect(rootBody).toContain('browse/dist');
+    expect(rootBody).toContain('make-pdf/dist');
+    expect(rootBody).toContain('ETHOS.md');
+    expect(rootBody).toContain('review');
+  });
+
+  test('setup verifies Copilot generated-to-deployed parity', () => {
+    const parityBody = extractSetupFunction('verify_copilot_skill_parity');
+    expect(parityBody).toContain('realpath');
+    expect(parityBody).toContain('.copilot/skills');
+    expect(setupContent).toContain('verify_copilot_skill_parity "$SOURCE_GSTACK_DIR" "$COPILOT_SKILLS"');
+    expect(setupContent).toContain('/skills reload');
+  });
+
+  test('verify_copilot_skill_parity succeeds only for matching generated links', () => {
+    const parityBody = extractSetupFunction('verify_copilot_skill_parity');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gstack-copilot-parity-'));
+    try {
+      const repo = path.join(tmp, 'repo');
+      const generated = path.join(repo, '.copilot', 'skills');
+      const skills = path.join(tmp, 'home', '.copilot', 'skills');
+      fs.mkdirSync(path.join(generated, 'gstack'), { recursive: true });
+      fs.mkdirSync(path.join(generated, 'gstack-ship'), { recursive: true });
+      fs.mkdirSync(path.join(skills, 'gstack'), { recursive: true });
+      fs.writeFileSync(path.join(generated, 'gstack', 'SKILL.md'), 'root');
+      fs.writeFileSync(path.join(generated, 'gstack-ship', 'SKILL.md'), 'ship');
+      fs.symlinkSync(path.join(generated, 'gstack', 'SKILL.md'), path.join(skills, 'gstack', 'SKILL.md'));
+      fs.symlinkSync(path.join(generated, 'gstack-ship'), path.join(skills, 'gstack-ship'));
+
+      const ok = Bun.spawnSync(['bash', '-c', `${parityBody}\nverify_copilot_skill_parity '${repo}' '${skills}'`], {
+        stdout: 'pipe', stderr: 'pipe',
+      });
+      expect(ok.exitCode).toBe(0);
+
+      fs.unlinkSync(path.join(skills, 'gstack-ship'));
+      const missing = Bun.spawnSync(['bash', '-c', `${parityBody}\nverify_copilot_skill_parity '${repo}' '${skills}'`], {
+        stdout: 'pipe', stderr: 'pipe',
+      });
+      expect(missing.exitCode).not.toBe(0);
+      expect(`${missing.stdout}\n${missing.stderr}`).toContain('missing deployed Copilot skill');
+
+      fs.mkdirSync(path.join(skills, 'gstack-ship'));
+      fs.writeFileSync(path.join(skills, 'gstack-ship', 'SKILL.md'), 'stale');
+      const stale = Bun.spawnSync(['bash', '-c', `${parityBody}\nverify_copilot_skill_parity '${repo}' '${skills}'`], {
+        stdout: 'pipe', stderr: 'pipe',
+      });
+      expect(stale.exitCode).not.toBe(0);
+      expect(`${stale.stdout}\n${stale.stderr}`).toContain('gstack-ship');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 
   test('create_agents_sidecar links runtime assets', () => {
@@ -2943,7 +3111,7 @@ describe('plan-mode-info resolver (handshake-replacement)', () => {
     // Non-Claude hosts render to hostSubdirs (.agents/, .openclaw/, etc). The
     // plan-mode-info resolver has no host-scoping — all hosts get the new
     // section, none get the old handshake. Scan all candidate host dirs.
-    const hostDirs = ['.agents', '.openclaw', '.opencode', '.factory', '.hermes', '.kiro', '.cursor', '.slate'];
+    const hostDirs = ['.agents', '.openclaw', '.opencode', '.factory', '.hermes', '.kiro', '.cursor', '.slate', '.copilot'];
     let checked = 0;
     for (const host of hostDirs) {
       const skillsRoot = path.join(ROOT, host, 'skills');

@@ -10,6 +10,7 @@
 #   ~/.claude/skills/gstack       — global Claude skill install (git clone or vendored)
 #   ~/.claude/skills/{skill}      — per-skill symlinks created by setup
 #   ~/.codex/skills/gstack*       — Codex skill install + per-skill symlinks
+#   ~/.copilot/skills/gstack*     — GitHub Copilot CLI generated skill links
 #   ~/.factory/skills/gstack*     — Factory Droid skill install + per-skill symlinks
 #   ~/.kiro/skills/gstack*        — Kiro skill install + per-skill symlinks
 #   ~/.gstack/                    — global state (config, analytics, sessions, projects,
@@ -64,6 +65,7 @@ if [ "$FORCE" -eq 0 ]; then
   echo "This will remove gstack from your system:"
   { [ -d "$HOME/.claude/skills/gstack" ] || [ -L "$HOME/.claude/skills/gstack" ]; } && echo "  ~/.claude/skills/gstack (+ per-skill symlinks)"
   [ -d "$HOME/.codex/skills" ] && echo "  ~/.codex/skills/gstack*"
+  [ -d "$HOME/.copilot/skills" ] && echo "  ~/.copilot/skills/gstack*"
   [ -d "$HOME/.factory/skills" ] && echo "  ~/.factory/skills/gstack*"
   [ -d "$HOME/.kiro/skills" ] && echo "  ~/.kiro/skills/gstack*"
   [ "$KEEP_STATE" -eq 0 ] && [ -d "$STATE_DIR" ] && echo "  $STATE_DIR"
@@ -168,6 +170,28 @@ if [ -d "$CODEX_SKILLS" ]; then
     [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
     rm -rf "$_ITEM"
     REMOVED+=("codex/$(basename "$_ITEM")")
+  done
+fi
+
+# ─── Remove GitHub Copilot CLI skills ────────────────────────
+COPILOT_SKILLS="$HOME/.copilot/skills"
+if [ -d "$COPILOT_SKILLS" ]; then
+  for _ITEM in "$COPILOT_SKILLS"/gstack*; do
+    [ -e "$_ITEM" ] || [ -L "$_ITEM" ] || continue
+    _REMOVE=0
+    _TARGET_REAL=""
+    if [ -L "$_ITEM" ]; then
+      _TARGET_REAL="$(realpath "$_ITEM/SKILL.md" 2>/dev/null || true)"
+    elif [ -d "$_ITEM" ] && [ -L "$_ITEM/SKILL.md" ]; then
+      _TARGET_REAL="$(realpath "$_ITEM/SKILL.md" 2>/dev/null || true)"
+    fi
+    case "$_TARGET_REAL" in
+      */.copilot/skills/gstack*/SKILL.md) _REMOVE=1 ;;
+    esac
+    if [ "$_REMOVE" -eq 1 ]; then
+      rm -rf "$_ITEM"
+      REMOVED+=("copilot/$(basename "$_ITEM")")
+    fi
   done
 fi
 

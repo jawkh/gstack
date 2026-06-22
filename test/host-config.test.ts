@@ -22,6 +22,7 @@ import {
   slate,
   cursor,
   openclaw,
+  copilot,
 } from '../hosts/index';
 import { HOST_PATHS } from '../scripts/resolvers/types';
 
@@ -30,8 +31,8 @@ const ROOT = path.resolve(import.meta.dir, '..');
 // ─── hosts/index.ts ─────────────────────────────────────────
 
 describe('hosts/index.ts', () => {
-  test('ALL_HOST_CONFIGS has 10 hosts', () => {
-    expect(ALL_HOST_CONFIGS.length).toBe(10);
+  test('ALL_HOST_CONFIGS has 11 hosts', () => {
+    expect(ALL_HOST_CONFIGS.length).toBe(11);
   });
 
   test('ALL_HOST_NAMES matches config names', () => {
@@ -53,12 +54,19 @@ describe('hosts/index.ts', () => {
     expect(slate.name).toBe('slate');
     expect(cursor.name).toBe('cursor');
     expect(openclaw.name).toBe('openclaw');
+    expect(copilot.name).toBe('copilot');
   });
 
   test('getHostConfig returns correct config', () => {
     const c = getHostConfig('codex');
     expect(c.name).toBe('codex');
     expect(c.displayName).toBe('OpenAI Codex CLI');
+  });
+
+  test('getHostConfig returns Copilot config', () => {
+    const c = getHostConfig('copilot');
+    expect(c.name).toBe('copilot');
+    expect(c.displayName).toBe('GitHub Copilot CLI');
   });
 
   test('getHostConfig throws on unknown host', () => {
@@ -257,6 +265,13 @@ describe('HOST_PATHS derivation from configs', () => {
     expect(HOST_PATHS.codex.designDir).toBe('$GSTACK_DESIGN');
   });
 
+  test('Copilot uses $GSTACK_ROOT env vars', () => {
+    expect(HOST_PATHS.copilot.skillRoot).toBe('$GSTACK_ROOT');
+    expect(HOST_PATHS.copilot.binDir).toBe('$GSTACK_BIN');
+    expect(HOST_PATHS.copilot.browseDir).toBe('$GSTACK_BROWSE');
+    expect(HOST_PATHS.copilot.localSkillRoot).toBe('.copilot/skills/gstack');
+  });
+
   test('every host with usesEnvVars=true gets env var paths', () => {
     for (const config of ALL_HOST_CONFIGS) {
       if (config.usesEnvVars) {
@@ -449,6 +464,11 @@ describe('host config correctness', () => {
     expect(codex.frontmatter.descriptionLimitBehavior).toBe('error');
   });
 
+  test('copilot has 1024-char description limit with error behavior', () => {
+    expect(copilot.frontmatter.descriptionLimit).toBe(1024);
+    expect(copilot.frontmatter.descriptionLimitBehavior).toBe('error');
+  });
+
   test('codex generates openai.yaml metadata', () => {
     expect(codex.generation.generateMetadata).toBe(true);
     expect(codex.generation.metadataFormat).toBe('openai.yaml');
@@ -482,6 +502,14 @@ describe('host config correctness', () => {
   test('codex has boundary instruction', () => {
     expect(codex.boundaryInstruction).toBeDefined();
     expect(codex.boundaryInstruction).toContain('Do NOT read');
+  });
+
+  test('copilot keeps Claude outside-voice skill and Codex resolver content', () => {
+    expect(copilot.generation.skipSkills).toContain('codex');
+    expect(copilot.generation.skipSkills).not.toContain('claude');
+    expect(copilot.suppressedResolvers || []).not.toContain('CODEX_SECOND_OPINION');
+    expect(copilot.suppressedResolvers || []).not.toContain('CODEX_PLAN_REVIEW');
+    expect(copilot.suppressedResolvers || []).not.toContain('REVIEW_ARMY');
   });
 
   test('openclaw has tool rewrites for exec/read/write', () => {
