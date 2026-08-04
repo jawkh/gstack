@@ -62,6 +62,10 @@ const copilot: HostConfig = {
   runtimeRoot: {
     globalSymlinks: [
       'bin',
+      // bin/gstack-{learnings,question,telemetry}-log import `$SCRIPT_DIR/../lib/*.ts`.
+      // SCRIPT_DIR is resolved logically (cd+pwd, no -P), so it stays inside this runtime
+      // root — without lib/ here those imports die with "Cannot find module".
+      'lib',
       'browse/dist',
       'browse/bin',
       'design/dist',
