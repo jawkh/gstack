@@ -1019,6 +1019,14 @@ create_copilot_runtime_root() {
   if [ -d "$gstack_dir/bin" ]; then
     _link_or_copy "$gstack_dir/bin" "$copilot_gstack/bin"
   fi
+  # bin/gstack-{learnings,question,telemetry}-log import `$SCRIPT_DIR/../lib/*.ts`.
+  # SCRIPT_DIR comes from `cd "$(dirname "$0")" && pwd` (logical, not `pwd -P`), so it
+  # stays inside this runtime root instead of resolving through the bin symlink to the
+  # source checkout. lib/ must therefore be present here too, or those scripts abort with
+  # "Cannot find module .../lib/jsonl-store.ts".
+  if [ -d "$gstack_dir/lib" ]; then
+    _link_or_copy "$gstack_dir/lib" "$copilot_gstack/lib"
+  fi
   if [ -d "$gstack_dir/browse/dist" ]; then
     _link_or_copy "$gstack_dir/browse/dist" "$copilot_gstack/browse/dist"
   fi
