@@ -233,7 +233,19 @@ function neutralizeHookProse(content: string): string {
     .replace(/will be \*\*blocked\*\* \(not just warned\)/, 'must be **refused by you** (not just warned)')
     .replace(/Two protections are now running:/, 'Two protections are now active, and I am enforcing both myself:')
     .replace(/will warn before executing \(you can override\)/, 'I will check every command and warn you before executing (you can override)')
-    .replace(/Edits outside this directory are blocked\./, 'I will refuse edits outside this directory.');
+    .replace(/Edits outside this directory are blocked\./, 'I will refuse edits outside this directory.')
+    // Upstream v1.75.0.0 restructured /careful and moved this line OUT of "How it
+    // works" into "Project patterns", so the section replacement above no longer
+    // reaches it. Under GHCP the frontmatter hook block is stripped and no hook
+    // process runs, so crediting one is exactly the fail-open this adapter exists
+    // to close — the agent reads "a hook handles it" and stops checking.
+    .replace(
+      /To deactivate, end the conversation or start a new one\. Hooks are session-scoped\./,
+      'To deactivate, tell me to stop, end the conversation, or start a new one. This is session-scoped: I enforce it only while this conversation lasts.',
+    )
+    // Defence in depth: catch the bare claim wherever a future rewording moves it,
+    // so this does not silently regress on the next upstream sync.
+    .replace(/Hooks are session-scoped\./g, 'This protection is session-scoped and agent-enforced.');
 
   // 4. Claude-only tool names the generic rewrite table can't reach (bare pairs, not "the X tool").
   //    Longest forms first so the trailing noun is consumed instead of leaving "tools ... tools".
