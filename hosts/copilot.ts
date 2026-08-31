@@ -5,6 +5,11 @@ const copilot: HostConfig = {
   displayName: 'GitHub Copilot CLI',
   cliCommand: 'copilot',
   cliAliases: [],
+  // Upstream v1.75.0.0 made defaultModel a required, validated HostConfig field.
+  // This config is a raw object literal rather than a defineHost() call, so it
+  // never picks up defineHost's 'claude' default — it has to be stated here.
+  // Copilot CLI is Claude-backed (the same reason /claude is in skipSkills).
+  defaultModel: 'claude',
 
   globalRoot: '.copilot/skills/gstack',
   localSkillRoot: '.copilot/skills/gstack',

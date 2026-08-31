@@ -7,7 +7,7 @@ describe('GHCP multi-model review voices (registry intercept)', () => {
   const { ghcpVoiceFor, GHCP_VOICE_PLACEHOLDERS } = require('../scripts/resolvers/ghcp/multimodel-voices');
   const { REVIEW_VOICES, IMPLEMENTER_MODEL } = require('../scripts/resolvers/ghcp/voices');
   const { RESOLVERS } = require('../scripts/resolvers/index');
-  const { unwrapResolver, HOST_PATHS } = require('../scripts/resolvers/types');
+  const { HOST_PATHS } = require('../scripts/resolvers/types');
 
   const ctxFor = (host: string, skillName: string) => ({
     skillName,
@@ -16,7 +16,8 @@ describe('GHCP multi-model review voices (registry intercept)', () => {
     paths: HOST_PATHS[host],
   });
   // Render a placeholder through the live registry (proves the intercept is wired).
-  const render = (key: string, ctx: any) => unwrapResolver(RESOLVERS[key]).resolve(ctx);
+  // Upstream v1.75.0.0 dropped the gated-entry form, so every entry is a bare function.
+  const render = (key: string, ctx: any) => RESOLVERS[key](ctx);
 
   test('voice roster SoT: diverse non-Claude frontier families, efforts within model ceilings', () => {
     const families = REVIEW_VOICES.map((v: any) => v.family);
